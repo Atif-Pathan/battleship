@@ -2,6 +2,7 @@ import globals from 'globals';
 import pluginJs from '@eslint/js';
 import prettierConfig from 'eslint-config-prettier';
 import tailwindcssPlugin from 'eslint-plugin-tailwindcss';
+import jestPlugin from 'eslint-plugin-jest';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
@@ -17,14 +18,13 @@ export default [
     ],
   },
   {
-    overrides: [
-      {
-        files: ['tests/**/*'],
-        env: {
-          jest: true,
-        },
+    files: ['**/*.test.js'], // Apply to all test files, regardless of location
+    plugins: { jest: jestPlugin },
+    languageOptions: {
+      globals: {
+        ...jestPlugin.environments.globals.globals, // Add Jest globals
       },
-    ],
+    },
   },
   pluginJs.configs.recommended,
   prettierConfig,
