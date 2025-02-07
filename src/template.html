@@ -10,7 +10,37 @@
     ></script>
     <link rel="icon" type="image/png" href="./assets/ship1.png" />
   </head>
-  <body>
-    <div class="text-xl">Hello World!</div>
+  <body class="flex min-h-screen flex-col gap-4 bg-gray-100 p-4 sm:p-6 lg:p-8">
+    <h1 class="text-center text-4xl font-bold">Battleship</h1>
+    <div
+      class="container flex max-w-full flex-1 flex-col justify-center gap-8 md:flex-row"
+    >
+      <!-- Player's Board Section -->
+      <div
+        id="player-board-container"
+        class="flex w-full flex-col items-center justify-center gap-2"
+      >
+        <h2 class="text-center text-2xl font-semibold">Your Fleet</h2>
+        <div
+          id="player-grid"
+          class="grid aspect-square w-3/5 grid-cols-10 grid-rows-10 border border-[#b7bcf1] bg-transparent md:w-3/4"
+        >
+          <!-- Grid cells will be rendered here -->
+        </div>
+      </div>
+      <!-- Enemy's Board Section -->
+      <div
+        id="enemy-board-container"
+        class="flex w-full flex-col items-center justify-center gap-2"
+      >
+        <h2 class="text-center text-2xl font-semibold">Enemy Fleet</h2>
+        <div
+          id="enemy-grid"
+          class="grid aspect-square w-3/5 grid-cols-10 grid-rows-10 border bg-transparent md:w-3/4"
+        >
+          <!-- Grid cells will be rendered here -->
+        </div>
+      </div>
+    </div>
   </body>
 </html>

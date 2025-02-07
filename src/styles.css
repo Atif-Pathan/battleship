@@ -105,3 +105,11 @@ ul[role='list'] {
     font-size: 16px; /* 1rem = 16px */
   }
 }
+
+/* styles.css or in your global Tailwind file */
+.enemy-cell {
+  @apply border border-red-200 bg-white transition-colors hover:border-2 hover:border-red-600;
+}
+.player-cell {
+  @apply border border-[#b7bcf1] bg-white;
+}
