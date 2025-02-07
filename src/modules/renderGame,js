@@ -13,24 +13,46 @@ export function initBoard(gridId, isEnemyBoard) {
     return;
   }
 
-  // Clear existing content
+  // 1) Clear existing content
   grid.innerHTML = "";
 
+  // 2) Ensure this container can host an absolutely positioned overlay
+  //    If you're already using Tailwind classes on this container, 
+  //    just add "relative" (or do it here with classList).
+  grid.classList.add("relative");
+
+  // 3) Generate 100 cells in a row-major order
   for (let i = 0; i < 100; i++) {
     let cell;
     if (isEnemyBoard) {
-      // Enemy board: Clickable button cells
+      // Enemy board => clickable button
       cell = document.createElement("button");
       cell.classList.add("enemy-cell");
       cell.dataset.index = i;
       cell.addEventListener("click", () => handleEnemyCellClick(i));
     } else {
-      // Player board: Non-clickable div cells
+      // Player board => static div
       cell = document.createElement("div");
-       cell.classList.add("player-cell");
+      cell.classList.add("player-cell");
     }
     grid.appendChild(cell);
   }
+
+  // 4) Create and append the overlay element (absolutely positioned)
+  const overlay = document.createElement("div");
+  // For consistency, name it something like "player-overlay" or "enemy-overlay"
+  overlay.id = gridId.replace("grid", "overlay");
+  // Tailwind classes for absolute positioning + no pointer interference
+  overlay.classList.add(
+    "pointer-events-none",
+    "absolute",
+    "top-0",
+    "left-0",
+    "w-full",
+    "h-full"
+  );
+
+  grid.appendChild(overlay);
 }
 
 // Example click handler for enemy board cells
@@ -47,37 +69,67 @@ function handleEnemyCellClick(index) {
  * @param {object} gameboard - The GameBoard instance having a 10x10 board property.
  * @param {string} containerId - The id of the container where cells were initialized.
  */
-export function renderBoard(gameboard, containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) {
-    console.error(`Container with id ${containerId} not found.`);
-    return;
-  }
-  // Assume that the board was initialized already (e.g., by initBoard).
-  // Get all the child cells (they were rendered in order)
-  const cells = container.children;
-  for (let i = 0; i < cells.length; i++) {
-    // Calculate row and col from the index:
-    const row = Math.floor(i / 10);
-    const col = i % 10;
-    const cellElement = cells[i];
-    const cellData = gameboard.board[row][col];
+export function renderBoard(gameBoard, gridId, overlayId) {
+  const grid = document.getElementById(gridId);
+  const overlay = document.getElementById(overlayId);
 
-    // Reset classes and content.
-    cellElement.classList.remove('ship', 'miss', 'hit');
-    cellElement.textContent = '';
+  if (!grid || !overlay) return;
 
-    // Update based on cellData.
-    if (cellData === 'M') {
-      cellElement.classList.add('miss');
-      cellElement.textContent = 'M';
-    } else if (cellData && cellData.ship) {
-      // For the player's board, show ships visibly.
-      cellElement.classList.add('ship');
-      if (cellData.hit) {
-        cellElement.classList.add('hit');
-        cellElement.textContent = 'X';
+  // 1. Clear any existing ship overlays
+  overlay.innerHTML = "";
+
+  // 2. Mark cells (hits & misses)
+  for (let row = 0; row < 10; row++) {
+    for (let col = 0; col < 10; col++) {
+      const index = row * 10 + col;
+      const cellEl = grid.children[index];
+      const cellData = gameBoard.board[row][col];
+
+      // Remove old classes
+      cellEl.classList.remove("cell-hit", "cell-miss");
+
+      // Miss => "M"
+      if (cellData === "M") {
+        cellEl.classList.add("cell-miss");
+      }
+      // Ship => { ship, hit: bool }
+      else if (cellData && cellData.ship) {
+        if (cellData.hit) {
+          cellEl.classList.add("cell-hit");
+        }
+        // else not hit, do nothing special for the cell-based approach
       }
     }
   }
+
+  // 3. Add an absolute overlay for each ship
+  gameBoard.ships.forEach(({ ship, rowStart, colStart }) => {
+    const shipDiv = document.createElement("div");
+
+    const cellPercent = 10; // each cell is 10% in a 10x10
+    const top = rowStart * cellPercent;
+    const left = colStart * cellPercent;
+
+    let width, height;
+    if (ship.orientation === "horizontal") {
+      width = ship.length * cellPercent;
+      height = cellPercent;
+    } else {
+      width = cellPercent;
+      height = ship.length * cellPercent;
+    }
+
+    shipDiv.style.top = `${top}%`;
+    shipDiv.style.left = `${left}%`;
+    shipDiv.style.width = `${width}%`;
+    shipDiv.style.height = `${height}%`;
+    shipDiv.classList.add("ship-overlay-base"); // from your CSS
+
+    // If the ship is sunk, override border color
+    if (ship.sunk) {
+      shipDiv.classList.add("ship-overlay-sunk");
+    }
+
+    overlay.appendChild(shipDiv);
+  });
 }

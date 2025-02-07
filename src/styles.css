@@ -108,8 +108,37 @@ ul[role='list'] {
 
 /* styles.css or in your global Tailwind file */
 .enemy-cell {
-  @apply border border-red-200 bg-white transition-colors hover:border-2 hover:border-red-600;
+  @apply border border-red-300 bg-white transition-colors hover:border-2 hover:border-red-600;
 }
+
 .player-cell {
   @apply border border-[#b7bcf1] bg-white;
+}
+
+/* Indicate a hit or miss with a pseudo-element */
+.cell-hit::before {
+  content: 'X';
+  color: red;
+  font-weight: bold;
+  display: block;
+  text-align: center;
+  line-height: 2;
+}
+
+.cell-miss::before {
+  content: '•'; /* or "." */
+  color: black;
+  font-size: 1.5rem;
+  display: block;
+  text-align: center;
+  line-height: 2;
+}
+
+/* Overlay for a single ship block */
+.ship-overlay-base {
+  @apply pointer-events-none absolute border-[3px] border-[#0a0fcd] bg-[#d6d6ff] bg-opacity-40;
+}
+
+.ship-overlay-sunk {
+  @apply border-red-700; /* If sunk, override border color */
 }

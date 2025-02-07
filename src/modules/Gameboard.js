@@ -75,21 +75,27 @@ export default class GameBoard {
 
   placeShip(ship, rowStart, colStart) {
     if (ship.orientation === 'horizontal') {
+      // 1) Check that the ship squares themselves are free
       if (!this.fitsHorizontally(ship.length, colStart)) {
         return false;
       }
-      // Check perimeter for collisions:
-      const perimeterCells = this.getPerimeter(ship, rowStart, colStart);
-      for (const [r, c] of perimeterCells) {
-        if (this.board[r][c] !== null) {
-          return false;
+      for (let c = colStart; c < colStart + ship.length; c++) {
+        if (this.board[rowStart][c] !== null) {
+          return false; // The actual ship space is occupied
         }
       }
 
-      for (let i = colStart; i < colStart + ship.length; i++) {
-        if (this.board[rowStart][i] === null) {
-          this.board[rowStart][i] = { ship: ship, hit: false };
+      // 2) Check perimeter squares
+      const perimeterCells = this.getPerimeter(ship, rowStart, colStart);
+      for (const [r, c] of perimeterCells) {
+        if (this.board[r][c] !== null) {
+          return false; // Perimeter is blocked
         }
+      }
+
+      // 3) Actually place the ship
+      for (let c = colStart; c < colStart + ship.length; c++) {
+        this.board[rowStart][c] = { ship, hit: false };
       }
       this.ships.push({ ship, rowStart, colStart });
       return true;
@@ -97,17 +103,23 @@ export default class GameBoard {
       if (!this.fitsVertically(ship.length, rowStart)) {
         return false;
       }
-      // Check perimeter for collisions:
+      for (let r = rowStart; r < rowStart + ship.length; r++) {
+        if (this.board[r][colStart] !== null) {
+          return false; // The actual ship space is occupied
+        }
+      }
+
+      // Check perimeter
       const perimeterCells = this.getPerimeter(ship, rowStart, colStart);
       for (const [r, c] of perimeterCells) {
         if (this.board[r][c] !== null) {
           return false;
         }
       }
-      for (let i = rowStart; i < rowStart + ship.length; i++) {
-        if (this.board[i][colStart] === null) {
-          this.board[i][colStart] = { ship: ship, hit: false };
-        }
+
+      // Place ship
+      for (let r = rowStart; r < rowStart + ship.length; r++) {
+        this.board[r][colStart] = { ship, hit: false };
       }
       this.ships.push({ ship, rowStart, colStart });
       return true;
