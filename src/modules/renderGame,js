@@ -1,0 +1,83 @@
+/**
+ * Initializes the board in the DOM by populating the container with cell elements.
+ * For player boards, we create non-clickable divs (so the ships are visible).
+ * For enemy boards, we create clickable buttons (so the user can attack).
+ *
+ * @param {string} containerId - The id of the DOM element where the board gets created.
+ * @param {('player'|'enemy')} type - The type of board. "player" boards use <div> cells; "enemy" boards use <button> cells.
+ */
+export function initBoard(gridId, isEnemyBoard) {
+  const grid = document.getElementById(gridId);
+  if (!grid) {
+    console.error(`Grid with ID '${gridId}' not found.`);
+    return;
+  }
+
+  // Clear existing content
+  grid.innerHTML = "";
+
+  for (let i = 0; i < 100; i++) {
+    let cell;
+    if (isEnemyBoard) {
+      // Enemy board: Clickable button cells
+      cell = document.createElement("button");
+      cell.classList.add("enemy-cell");
+      cell.dataset.index = i;
+      cell.addEventListener("click", () => handleEnemyCellClick(i));
+    } else {
+      // Player board: Non-clickable div cells
+      cell = document.createElement("div");
+       cell.classList.add("player-cell");
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// Example click handler for enemy board cells
+function handleEnemyCellClick(index) {
+  console.log(`Enemy cell ${index} clicked!`);
+  // Add further game logic here
+}
+
+/**
+ * Renders a gameboard (domain object) to the DOM.
+ * It updates the cell elements based on the state of gameboard.board.
+ * For example, it may add a class if a cell contains a ship, if it’s marked as "M", etc.
+ *
+ * @param {object} gameboard - The GameBoard instance having a 10x10 board property.
+ * @param {string} containerId - The id of the container where cells were initialized.
+ */
+export function renderBoard(gameboard, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.error(`Container with id ${containerId} not found.`);
+    return;
+  }
+  // Assume that the board was initialized already (e.g., by initBoard).
+  // Get all the child cells (they were rendered in order)
+  const cells = container.children;
+  for (let i = 0; i < cells.length; i++) {
+    // Calculate row and col from the index:
+    const row = Math.floor(i / 10);
+    const col = i % 10;
+    const cellElement = cells[i];
+    const cellData = gameboard.board[row][col];
+
+    // Reset classes and content.
+    cellElement.classList.remove('ship', 'miss', 'hit');
+    cellElement.textContent = '';
+
+    // Update based on cellData.
+    if (cellData === 'M') {
+      cellElement.classList.add('miss');
+      cellElement.textContent = 'M';
+    } else if (cellData && cellData.ship) {
+      // For the player's board, show ships visibly.
+      cellElement.classList.add('ship');
+      if (cellData.hit) {
+        cellElement.classList.add('hit');
+        cellElement.textContent = 'X';
+      }
+    }
+  }
+}
