@@ -115,30 +115,49 @@ ul[role='list'] {
   @apply border border-[#b7bcf1] bg-white;
 }
 
-/* Indicate a hit or miss with a pseudo-element */
-.cell-hit::before {
-  content: 'X';
-  color: red;
-  font-weight: bold;
-  display: block;
-  text-align: center;
-  line-height: 2;
+.cell-miss {
+  @apply relative overflow-hidden bg-gray-200;
 }
 
+/* Show a black dot for misses */
 .cell-miss::before {
-  content: '•'; /* or "." */
+  content: '•';
   color: black;
-  font-size: 1.5rem;
   display: block;
   text-align: center;
-  line-height: 2;
+}
+
+/* Show a big red "X" that spans diagonals of the cell */
+.cell-hit {
+  @apply relative overflow-hidden;
+}
+
+.cell-hit::before,
+.cell-hit::after {
+  content: '';
+  @apply absolute left-1/2 top-1/2 bg-red-700;
+  width: 3px;
+  height: 150%;
+  transform-origin: center;
+}
+
+.cell-hit::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cell-hit::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 /* Overlay for a single ship block */
 .ship-overlay-base {
-  @apply pointer-events-none absolute border-[3px] border-[#0a0fcd] bg-[#d6d6ff] bg-opacity-40;
+  @apply pointer-events-none absolute border-[3px] border-transparent bg-[#d6d6ff] bg-opacity-40;
+}
+
+.ship-overlay-blue {
+  @apply border-[#0a0fcd];
 }
 
 .ship-overlay-sunk {
-  @apply border-red-700; /* If sunk, override border color */
+  @apply border-red-700 bg-transparent !important;
 }

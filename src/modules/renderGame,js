@@ -1,12 +1,12 @@
 /**
  * Initializes the board in the DOM by populating the container with cell elements.
- * For player boards, we create non-clickable divs (so the ships are visible).
- * For enemy boards, we create clickable buttons (so the user can attack).
+ * For player boards, we create non-clickable divs; for enemy boards, clickable buttons.
  *
- * @param {string} containerId - The id of the DOM element where the board gets created.
- * @param {('player'|'enemy')} type - The type of board. "player" boards use <div> cells; "enemy" boards use <button> cells.
+ * @param {string} gridId - The id of the DOM element where the board gets created.
+ * @param {boolean} isEnemyBoard - If true, creates clickable cells.
+ * @param {function} [enemyClickHandler] - Optional callback for enemy cell clicks.
  */
-export function initBoard(gridId, isEnemyBoard) {
+export function initBoard(gridId, isEnemyBoard, enemyClickHandler) {
   const grid = document.getElementById(gridId);
   if (!grid) {
     console.error(`Grid with ID '${gridId}' not found.`);
@@ -14,122 +14,195 @@ export function initBoard(gridId, isEnemyBoard) {
   }
 
   // 1) Clear existing content
-  grid.innerHTML = "";
+  grid.innerHTML = '';
 
-  // 2) Ensure this container can host an absolutely positioned overlay
-  //    If you're already using Tailwind classes on this container, 
-  //    just add "relative" (or do it here with classList).
-  grid.classList.add("relative");
-
-  // 3) Generate 100 cells in a row-major order
+  // 2) Generate 100 cells in a row-major order
   for (let i = 0; i < 100; i++) {
     let cell;
     if (isEnemyBoard) {
       // Enemy board => clickable button
-      cell = document.createElement("button");
-      cell.classList.add("enemy-cell");
+      cell = document.createElement('button');
+      cell.classList.add('enemy-cell');
       cell.dataset.index = i;
-      cell.addEventListener("click", () => handleEnemyCellClick(i));
+      if (typeof enemyClickHandler === 'function') {
+        cell.addEventListener('click', () => {
+          enemyClickHandler(i);
+        });
+      }
     } else {
       // Player board => static div
-      cell = document.createElement("div");
-      cell.classList.add("player-cell");
+      cell = document.createElement('div');
+      cell.classList.add('player-cell');
     }
     grid.appendChild(cell);
   }
 
-  // 4) Create and append the overlay element (absolutely positioned)
-  const overlay = document.createElement("div");
+  // 3) Create and append the overlay element (absolutely positioned)
+  const overlay = document.createElement('div');
   // For consistency, name it something like "player-overlay" or "enemy-overlay"
-  overlay.id = gridId.replace("grid", "overlay");
+  overlay.id = gridId.replace('grid', 'overlay');
   // Tailwind classes for absolute positioning + no pointer interference
   overlay.classList.add(
-    "pointer-events-none",
-    "absolute",
-    "top-0",
-    "left-0",
-    "w-full",
-    "h-full"
+    'pointer-events-none',
+    'absolute',
+    'top-0',
+    'left-0',
+    'w-full',
+    'h-full'
   );
-
   grid.appendChild(overlay);
 }
 
-// Example click handler for enemy board cells
-function handleEnemyCellClick(index) {
-  console.log(`Enemy cell ${index} clicked!`);
-  // Add further game logic here
-}
-
 /**
- * Renders a gameboard (domain object) to the DOM.
- * It updates the cell elements based on the state of gameboard.board.
- * For example, it may add a class if a cell contains a ship, if it’s marked as "M", etc.
+ * Creates the ship overlay elements for each ship.
+ * This function is meant to be called once after ships are placed.
  *
- * @param {object} gameboard - The GameBoard instance having a 10x10 board property.
- * @param {string} containerId - The id of the container where cells were initialized.
+ * @param {object} gameBoard - The GameBoard instance (with board and ships[]).
+ * @param {string} overlayId - The id of the overlay container (e.g., "player-overlay").
+ * @param {boolean} isComputerBoard - If true, unsunk enemy ship overlays are initially hidden.
  */
-export function renderBoard(gameBoard, gridId, overlayId) {
-  const grid = document.getElementById(gridId);
+export function initShipOverlays(
+  gameBoard,
+  overlayId,
+  isComputerBoard = false
+) {
   const overlay = document.getElementById(overlayId);
+  if (!overlay) return;
 
-  if (!grid || !overlay) return;
+  // Clear any existing overlays
+  overlay.innerHTML = '';
 
-  // 1. Clear any existing ship overlays
-  overlay.innerHTML = "";
+  // For each ship, create one overlay element and tag it with a data attribute for later updates.
+  gameBoard.ships.forEach((shipObj, index) => {
+    // For enemy boards, create an overlay for every ship,
+    // but unsunk ones will be hidden (via display: none) later.
+    const { ship, rowStart, colStart } = shipObj;
+    const shipDiv = document.createElement('div');
+    shipDiv.dataset.shipIndex = index; // store ship index
 
-  // 2. Mark cells (hits & misses)
-  for (let row = 0; row < 10; row++) {
-    for (let col = 0; col < 10; col++) {
-      const index = row * 10 + col;
-      const cellEl = grid.children[index];
-      const cellData = gameBoard.board[row][col];
-
-      // Remove old classes
-      cellEl.classList.remove("cell-hit", "cell-miss");
-
-      // Miss => "M"
-      if (cellData === "M") {
-        cellEl.classList.add("cell-miss");
-      }
-      // Ship => { ship, hit: bool }
-      else if (cellData && cellData.ship) {
-        if (cellData.hit) {
-          cellEl.classList.add("cell-hit");
-        }
-        // else not hit, do nothing special for the cell-based approach
-      }
-    }
-  }
-
-  // 3. Add an absolute overlay for each ship
-  gameBoard.ships.forEach(({ ship, rowStart, colStart }) => {
-    const shipDiv = document.createElement("div");
-
-    const cellPercent = 10; // each cell is 10% in a 10x10
+    const cellPercent = 10; // each cell is 10% of a 10x10 grid
     const top = rowStart * cellPercent;
     const left = colStart * cellPercent;
-
     let width, height;
-    if (ship.orientation === "horizontal") {
+    if (ship.orientation === 'horizontal') {
       width = ship.length * cellPercent;
       height = cellPercent;
     } else {
       width = cellPercent;
       height = ship.length * cellPercent;
     }
-
     shipDiv.style.top = `${top}%`;
     shipDiv.style.left = `${left}%`;
     shipDiv.style.width = `${width}%`;
     shipDiv.style.height = `${height}%`;
-    shipDiv.classList.add("ship-overlay-base"); // from your CSS
 
-    // If the ship is sunk, override border color
+    // Add base overlay class
+    shipDiv.classList.add('ship-overlay-base');
+    // For unsunk ships:
     if (ship.sunk) {
-      shipDiv.classList.add("ship-overlay-sunk");
+      shipDiv.classList.add('ship-overlay-sunk');
+    } else {
+      // On player board, unsunk overlays are visible with a blue border.
+      // On enemy boards, unsunk overlays will be hidden.
+      if (!isComputerBoard) {
+        shipDiv.classList.add('ship-overlay-blue');
+      }
     }
-
     overlay.appendChild(shipDiv);
   });
+}
+
+/**
+ * Updates the existing ship overlay elements without recreating them.
+ * It loops through the gameBoard.ships array and updates the overlay classes.
+ *
+ * @param {object} gameBoard - The GameBoard instance.
+ * @param {string} overlayId - The id of the overlay container.
+ */
+function updateShipOverlays(gameBoard, overlayId) {
+  const overlay = document.getElementById(overlayId);
+  if (!overlay) return;
+
+  gameBoard.ships.forEach((shipObj, index) => {
+    const shipDiv = overlay.querySelector(`[data-ship-index="${index}"]`);
+    if (!shipDiv) return;
+    // Remove any previous border classes.
+    shipDiv.classList.remove('ship-overlay-blue', 'ship-overlay-sunk');
+    if (shipObj.ship.sunk) {
+      shipDiv.classList.add('ship-overlay-sunk');
+    } else {
+      shipDiv.classList.add('ship-overlay-blue');
+    }
+  });
+}
+
+/**
+ * Renders the board cells (hits & misses) by updating classes on each cell.
+ * This function does not re-create the ship overlay container.
+ *
+ * @param {object} gameBoard - The GameBoard instance.
+ * @param {string} gridId - The id of the grid container.
+ */
+function renderCells(gameBoard, gridId) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+
+  for (let row = 0; row < 10; row++) {
+    for (let col = 0; col < 10; col++) {
+      const index = row * 10 + col;
+      const cellEl = grid.children[index];
+      const cellData = gameBoard.board[row][col];
+
+      cellEl.classList.remove('cell-hit', 'cell-miss');
+      if (cellData === 'M') {
+        cellEl.classList.add('cell-miss');
+      } else if (cellData && cellData.ship) {
+        if (cellData.hit) {
+          cellEl.classList.add('cell-hit');
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Combined render function that updates cells and then updates ship overlays.
+ *
+ * @param {object} gameBoard - The GameBoard instance.
+ * @param {string} gridId - The id of the grid container.
+ * @param {string} overlayId - The id of the overlay container.
+ * @param {boolean} isComputerBoard - For enemy boards: unsunk overlays remain hidden.
+ */
+export function renderBoard(
+  gameBoard,
+  gridId,
+  overlayId,
+  isComputerBoard = false
+) {
+  // Update the cells (hits/misses)
+  renderCells(gameBoard, gridId);
+
+  const overlay = document.getElementById(overlayId);
+  if (!overlay) return;
+
+  if (isComputerBoard) {
+    // For enemy boards, update each overlay: update its classes and toggle display.
+    overlay.querySelectorAll('[data-ship-index]').forEach((shipDiv) => {
+      const index = Number(shipDiv.dataset.shipIndex);
+      const shipObj = gameBoard.ships[index];
+      // Remove any border classes so we can reapply.
+      shipDiv.classList.remove('ship-overlay-blue', 'ship-overlay-sunk');
+      if (shipObj.ship.sunk) {
+        shipDiv.classList.add('ship-overlay-sunk');
+        shipDiv.style.display = 'block';
+      } else {
+        // For unsunk enemy ships, update class but keep them hidden.
+        shipDiv.classList.add('ship-overlay-blue');
+        shipDiv.style.display = 'none';
+      }
+    });
+  } else {
+    // For player boards, simply update the overlays.
+    updateShipOverlays(gameBoard, overlayId);
+  }
 }
