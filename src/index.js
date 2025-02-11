@@ -18,6 +18,91 @@ let playerGrid;
 
 const computerTargetList = [];
 
+function showModal(message) {
+  // Create modal overlay element
+  const modalOverlay = document.createElement('div');
+  modalOverlay.id = 'game-modal';
+  modalOverlay.classList.add(
+    'fixed',
+    'inset-0',
+    'bg-black',
+    'bg-opacity-75',
+    'flex',
+    'items-center',
+    'justify-center',
+    'z-50'
+  );
+  // Create modal content container
+  const modalContent = document.createElement('div');
+  modalContent.classList.add(
+    'bg-white',
+    'p-10',
+    'rounded-lg',
+    'shadow-2xl',
+    'text-center',
+    'w-1/2',
+    'max-w-2xl'
+  );
+  // Create message element
+  const modalMessage = document.createElement('p');
+  modalMessage.textContent = message;
+  modalMessage.classList.add('text-4xl', 'font-bold', 'mb-8');
+  // Create reset button
+  const resetButton = document.createElement('button');
+  resetButton.id = 'reset-button';
+  resetButton.textContent = 'Reset Game';
+  resetButton.classList.add(
+    'bg-blue-500',
+    'text-white',
+    'py-3',
+    'px-6',
+    'rounded',
+    'hover:bg-blue-600'
+  );
+  resetButton.addEventListener('click', resetGame);
+  // Append message and button to modal content, then content to overlay.
+  modalContent.appendChild(modalMessage);
+  modalContent.appendChild(resetButton);
+  modalOverlay.appendChild(modalContent);
+  document.body.appendChild(modalOverlay);
+}
+
+function resetGame() {
+  // Remove the modal
+  const modal = document.getElementById('game-modal');
+  if (modal) {
+    modal.remove();
+  }
+  computerTargetList.length = 0;
+  // Re-initialize boards
+  initBoard('player-grid', false);
+  initBoard('enemy-grid', true, (index) =>
+    handleEnemyCellClick(index, players.computer.gameBoard)
+  );
+  enemyGrid = document.getElementById('enemy-grid');
+  playerGrid = document.getElementById('player-grid');
+  playerGrid.classList.add('disable-grid');
+  enemyGrid.classList.remove('disable-grid');
+
+  // Create new players
+  players.human = new Player('real');
+  players.computer = new Player('computer');
+
+  // Place ships randomly
+  placeRandomShips(players.human.gameBoard);
+  placeRandomShips(players.computer.gameBoard);
+
+  // Create ship overlays once after ships are placed
+  initShipOverlays(players.human.gameBoard, 'player-overlay', false);
+  initShipOverlays(players.computer.gameBoard, 'enemy-overlay', true);
+
+  // Render initial state
+  renderBoard(players.human.gameBoard, 'player-grid', 'player-overlay', false);
+  renderBoard(players.computer.gameBoard, 'enemy-grid', 'enemy-overlay', true);
+
+  currentTurn = 'human';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize the boards
   initBoard('player-grid', false);
@@ -36,9 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
   placeRandomShips(players.human.gameBoard);
   placeRandomShips(players.computer.gameBoard);
 
-  console.log(players.human.gameBoard);
-  console.log(players.computer.gameBoard);
-
   // Once ships are placed, create ship overlays once
   initShipOverlays(players.human.gameBoard, 'player-overlay', false);
   initShipOverlays(players.computer.gameBoard, 'enemy-overlay', true);
@@ -48,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderBoard(players.computer.gameBoard, 'enemy-grid', 'enemy-overlay', true);
 
   currentTurn = 'human';
-  console.log("It's the human turn. Click on an enemy cell to attack.");
 });
 
 function placeRandomShips(gameBoard) {
@@ -78,12 +159,20 @@ function placeRandomShips(gameBoard) {
 
 function handleEnemyCellClick(index, computerBoard) {
   if (currentTurn !== 'human') return;
-  console.log(`Enemy cell ${index} clicked!`);
   const row = Math.floor(index / 10);
   const col = index % 10;
 
   // Attack the cell.
   computerBoard.receiveAttack(row, col);
+
+  // Re-render the enemy board.
+  renderBoard(computerBoard, 'enemy-grid', 'enemy-overlay', true);
+
+  // check if player won
+  if (computerBoard.allShipsSunk()) {
+    showModal('You Win!');
+    return; // Stop processing turn-switch logic.
+  }
 
   // Check if the attack was a hit.
   let wasHit = false;
@@ -91,9 +180,6 @@ function handleEnemyCellClick(index, computerBoard) {
   if (cell && cell.ship && cell.hit) {
     wasHit = true;
   }
-
-  // Re-render the enemy board.
-  renderBoard(computerBoard, 'enemy-grid', 'enemy-overlay', true);
 
   if (!wasHit) {
     // Switch turn to computer if no hit
@@ -108,7 +194,6 @@ function computerMove() {
   playerGrid.classList.remove('disable-grid');
 
   setTimeout(() => {
-    console.log('Computer making move...');
     const humanBoard = players.human.gameBoard;
     let row, col;
     let legal = false;
@@ -143,9 +228,14 @@ function computerMove() {
       }
     }
 
-    console.log(`Computer attacks cell at row ${row}, col ${col}`);
     humanBoard.receiveAttack(row, col);
     renderBoard(humanBoard, 'player-grid', 'player-overlay', false);
+
+    // Check if human board has lost
+    if (humanBoard.allShipsSunk()) {
+      showModal('You lose!');
+      return;
+    }
 
     // Determine if the move was a hit.
     let wasHit = false;
@@ -165,7 +255,7 @@ function computerMove() {
       enemyGrid.classList.remove('disable-grid');
       playerGrid.classList.add('disable-grid');
     }
-  }, 1000);
+  }, 300);
 }
 
 function isLegalMove(board, row, col) {
