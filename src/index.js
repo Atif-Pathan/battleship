@@ -7,7 +7,6 @@ import {
 import Player from './modules/Player.js';
 import Ship from './modules/Ship.js';
 
-// Global turn tracker: "human" or "computer"
 let currentTurn;
 const players = {
   human: null,
@@ -16,6 +15,8 @@ const players = {
 
 let enemyGrid;
 let playerGrid;
+
+const computerTargetList = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize the boards
@@ -28,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   playerGrid = document.getElementById('player-grid');
   playerGrid.classList.add('disable-grid');
 
-  //   // Create players
+  // Create players
   players.human = new Player('real');
   players.computer = new Player('computer');
 
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initShipOverlays(players.human.gameBoard, 'player-overlay', false);
   initShipOverlays(players.computer.gameBoard, 'enemy-overlay', true);
 
-  // Render initial state (cells are updated each time)
+  // Render initial state
   renderBoard(players.human.gameBoard, 'player-grid', 'player-overlay', false);
   renderBoard(players.computer.gameBoard, 'enemy-grid', 'enemy-overlay', true);
 
@@ -51,21 +52,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function placeRandomShips(gameBoard) {
-  // The 10 ships you want to place:
+  // place 10 ships of these sizes:
   const shipSizes = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
 
   for (const size of shipSizes) {
-    // Create a ship
     const ship = new Ship(size);
 
-    // Randomly choose orientation 50% of the time
+    // Randomly rotate ship 50% of the time
     if (Math.random() < 0.5) {
-      ship.rotate(); // By default, your Ship is horizontal, so rotate to vertical
+      ship.rotate();
     }
 
     let placed = false;
     while (!placed) {
-      // Pick random row & column from 0 to 9
       const row = Math.floor(Math.random() * 10);
       const col = Math.floor(Math.random() * 10);
 
@@ -96,47 +95,59 @@ function handleEnemyCellClick(index, computerBoard) {
   // Re-render the enemy board.
   renderBoard(computerBoard, 'enemy-grid', 'enemy-overlay', true);
 
-  if (wasHit) {
-    console.log('Hit! You get another attack.');
-    // Remain on human turn—do not switch.
-  } else {
-    // Switch turn to computer.
+  if (!wasHit) {
+    // Switch turn to computer if no hit
     currentTurn = 'computer';
-    console.log("Missed! Now it's the computer's turn...");
     computerMove();
   }
+  // else, human player gets to go again
 }
 
 function computerMove() {
-  // Disable enemy board during computer's turn.
   enemyGrid.classList.add('disable-grid');
-  // Enable the human board (if you wish to show it differently) or keep it disabled.
   playerGrid.classList.remove('disable-grid');
 
   setTimeout(() => {
     console.log('Computer making move...');
-
     const humanBoard = players.human.gameBoard;
     let row, col;
     let legal = false;
-    // Find a random legal move.
-    while (!legal) {
-      row = Math.floor(Math.random() * 10);
-      col = Math.floor(Math.random() * 10);
-      const cell = humanBoard.board[row][col];
-      // Assume a cell is legal if it is either null or contains a ship that has not yet been hit.
-      if (cell === null || (cell && cell.ship && !cell.hit)) {
+
+    // If our target list is not empty, try its next candidate.
+    if (computerTargetList.length > 0) {
+      // Remove any targets that are no longer legal.
+      while (
+        computerTargetList.length > 0 &&
+        !isLegalMove(
+          humanBoard,
+          computerTargetList[0][0],
+          computerTargetList[0][1]
+        )
+      ) {
+        computerTargetList.shift();
+      }
+      if (computerTargetList.length > 0) {
+        [row, col] = computerTargetList.shift();
         legal = true;
+      }
+    }
+
+    // If no valid target was available, pick a random legal cell.
+    if (!legal) {
+      while (!legal) {
+        row = Math.floor(Math.random() * 10);
+        col = Math.floor(Math.random() * 10);
+        if (isLegalMove(humanBoard, row, col)) {
+          legal = true;
+        }
       }
     }
 
     console.log(`Computer attacks cell at row ${row}, col ${col}`);
     humanBoard.receiveAttack(row, col);
-
-    // Re-render the human board.
     renderBoard(humanBoard, 'player-grid', 'player-overlay', false);
 
-    // Check if the computer's attack was a hit.
+    // Determine if the move was a hit.
     let wasHit = false;
     const attackedCell = humanBoard.board[row][col];
     if (attackedCell && attackedCell.ship && attackedCell.hit) {
@@ -144,15 +155,39 @@ function computerMove() {
     }
 
     if (wasHit) {
-      console.log('Computer hit! It gets another turn.');
-      // Keep turn as 'computer' and call computerMove() again after a delay.
-      setTimeout(computerMove, 1000);
+      // Add adjacent candidates from this hit.
+      addAdjacentCandidates(humanBoard, row, col);
+      // computer gets to go again
+      setTimeout(() => computerMove(), 1000);
     } else {
-      console.log("Computer missed! Now it's the human's turn again.");
+      // computer missed so switch turn
       currentTurn = 'human';
-      // Enable enemy board for human clicks and disable human board.
       enemyGrid.classList.remove('disable-grid');
       playerGrid.classList.add('disable-grid');
     }
-  }, 2000); // 2-second delay for computer move.
+  }, 1000);
+}
+
+function isLegalMove(board, row, col) {
+  // legal if its null or its a ship that isnt hit
+  const cell = board.board[row][col];
+  return cell === null || (cell && cell.ship && !cell.hit);
+}
+
+function addAdjacentCandidates(board, row, col) {
+  const candidates = [];
+  if (row - 1 >= 0) candidates.push([row - 1, col]); // Up
+  if (row + 1 < 10) candidates.push([row + 1, col]); // Down
+  if (col - 1 >= 0) candidates.push([row, col - 1]); // Left
+  if (col + 1 < 10) candidates.push([row, col + 1]); // Right
+
+  candidates.forEach(([r, c]) => {
+    // Add if legal and not already in the target list.
+    if (
+      isLegalMove(board, r, c) &&
+      !computerTargetList.some((coord) => coord[0] === r && coord[1] === c)
+    ) {
+      computerTargetList.push([r, c]);
+    }
+  });
 }
