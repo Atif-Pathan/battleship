@@ -13,7 +13,7 @@
   <body class="flex min-h-screen flex-col gap-4 bg-gray-100 p-6 sm:p-8 lg:p-10">
     <h1 class="text-center text-4xl font-bold">Battleship</h1>
     <div
-      class="container flex max-w-full flex-1 flex-col justify-start gap-8 md:flex-row md:items-start md:gap-0"
+      class="container flex min-w-96 flex-1 flex-col justify-start gap-8 md:flex-row md:items-start md:gap-0"
     >
       <!-- Player's Board Section -->
       <div
@@ -36,7 +36,7 @@
         <h2 class="text-center text-2xl font-semibold">Enemy Fleet</h2>
         <div
           id="enemy-grid"
-          class="relative grid aspect-square w-3/4 grid-cols-10 grid-rows-10 border border-red-300 bg-transparent md:w-[70%]"
+          class="min-w-3/4 relative grid aspect-square w-3/4 grid-cols-10 grid-rows-10 border border-red-300 bg-transparent md:w-[70%]"
         >
           <!-- Grid cells will be rendered here -->
         </div>

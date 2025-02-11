@@ -108,15 +108,15 @@ ul[role='list'] {
 
 /* styles.css or in your global Tailwind file */
 .enemy-cell {
-  @apply border border-red-300 bg-white transition-colors hover:border-2 hover:border-red-600;
+  @apply flex items-center justify-center border border-red-300 bg-white transition-colors hover:border-2 hover:border-red-600;
 }
 
 .player-cell {
-  @apply border border-[#b7bcf1] bg-white;
+  @apply flex items-center justify-center border border-[#b7bcf1] bg-white;
 }
 
 .cell-miss {
-  @apply relative overflow-hidden bg-gray-200;
+  @apply pointer-events-none relative overflow-hidden bg-gray-200;
 }
 
 /* Show a black dot for misses */
@@ -129,7 +129,7 @@ ul[role='list'] {
 
 /* Show a big red "X" that spans diagonals of the cell */
 .cell-hit {
-  @apply relative overflow-hidden;
+  @apply pointer-events-none relative overflow-hidden;
 }
 
 .cell-hit::before,
@@ -160,4 +160,8 @@ ul[role='list'] {
 
 .ship-overlay-sunk {
   @apply border-red-700 bg-transparent !important;
+}
+
+.disable-grid {
+  @apply pointer-events-none opacity-40;
 }
