@@ -18,6 +18,106 @@ let playerGrid;
 
 const computerTargetList = [];
 
+function initGame() {
+  // Initialize the boards
+  initBoard('player-grid', false);
+  initBoard('enemy-grid', true, (index) =>
+    handleEnemyCellClick(index, players.computer.gameBoard)
+  );
+
+  enemyGrid = document.getElementById('enemy-grid');
+  playerGrid = document.getElementById('player-grid');
+  playerGrid.classList.add('disable-grid');
+  enemyGrid.classList.remove('disable-grid');
+
+  // Create new players
+  players.human = new Player('real');
+  players.computer = new Player('computer');
+
+  // Place ships randomly for both players
+  placeRandomShips(players.human.gameBoard);
+  placeRandomShips(players.computer.gameBoard);
+
+  console.log(players.human.gameBoard);
+  console.log(players.computer.gameBoard);
+
+  // Once ships are placed, create ship overlays once
+  initShipOverlays(players.human.gameBoard, 'player-overlay', false);
+  initShipOverlays(players.computer.gameBoard, 'enemy-overlay', true);
+
+  // Render initial state (cells are updated each time)
+  renderBoard(players.human.gameBoard, 'player-grid', 'player-overlay', false);
+  renderBoard(players.computer.gameBoard, 'enemy-grid', 'enemy-overlay', true);
+
+  // Add the placement controls below the player grid (if not already present)
+  const playerBoardContainer = document.getElementById(
+    'player-board-container'
+  );
+  let placementControlContainer = document.getElementById('placement-controls');
+  if (placementControlContainer) {
+    placementControlContainer.remove();
+  }
+  placementControlContainer = document.createElement('div');
+  placementControlContainer.id = 'placement-controls';
+  placementControlContainer.classList.add('flex', 'gap-4', 'mt-4');
+
+  const randomizeButton = document.createElement('button');
+  randomizeButton.textContent = 'Randomize Ships';
+  randomizeButton.classList.add(
+    'bg-green-500',
+    'text-white',
+    'py-2',
+    'px-4',
+    'rounded',
+    'hover:bg-green-600'
+  );
+  randomizeButton.addEventListener('click', () => {
+    // Re-randomize the human player's ships
+    players.human = new Player('real');
+    placeRandomShips(players.human.gameBoard);
+    initShipOverlays(players.human.gameBoard, 'player-overlay', false);
+    renderBoard(
+      players.human.gameBoard,
+      'player-grid',
+      'player-overlay',
+      false
+    );
+    console.log('Player ships re-randomized.');
+  });
+
+  const lockButton = document.createElement('button');
+  lockButton.textContent = 'Lock Ships';
+  lockButton.classList.add(
+    'bg-blue-500',
+    'text-white',
+    'py-2',
+    'px-4',
+    'rounded',
+    'hover:bg-blue-600'
+  );
+  lockButton.addEventListener('click', () => {
+    placementControlContainer.style.display = 'none';
+    currentTurn = 'human';
+    console.log('Player ships locked in. Game begins.');
+  });
+
+  placementControlContainer.appendChild(randomizeButton);
+  placementControlContainer.appendChild(lockButton);
+  playerBoardContainer.appendChild(placementControlContainer);
+
+  // Start with human turn.
+  currentTurn = 'human';
+}
+
+function resetGame() {
+  const modal = document.getElementById('game-modal');
+  if (modal) {
+    modal.remove();
+  }
+  computerTargetList.length = 0;
+  initGame();
+}
+
 function showModal(message) {
   // Create modal overlay element
   const modalOverlay = document.createElement('div');
@@ -67,69 +167,8 @@ function showModal(message) {
   document.body.appendChild(modalOverlay);
 }
 
-function resetGame() {
-  // Remove the modal
-  const modal = document.getElementById('game-modal');
-  if (modal) {
-    modal.remove();
-  }
-  computerTargetList.length = 0;
-  // Re-initialize boards
-  initBoard('player-grid', false);
-  initBoard('enemy-grid', true, (index) =>
-    handleEnemyCellClick(index, players.computer.gameBoard)
-  );
-  enemyGrid = document.getElementById('enemy-grid');
-  playerGrid = document.getElementById('player-grid');
-  playerGrid.classList.add('disable-grid');
-  enemyGrid.classList.remove('disable-grid');
-
-  // Create new players
-  players.human = new Player('real');
-  players.computer = new Player('computer');
-
-  // Place ships randomly
-  placeRandomShips(players.human.gameBoard);
-  placeRandomShips(players.computer.gameBoard);
-
-  // Create ship overlays once after ships are placed
-  initShipOverlays(players.human.gameBoard, 'player-overlay', false);
-  initShipOverlays(players.computer.gameBoard, 'enemy-overlay', true);
-
-  // Render initial state
-  renderBoard(players.human.gameBoard, 'player-grid', 'player-overlay', false);
-  renderBoard(players.computer.gameBoard, 'enemy-grid', 'enemy-overlay', true);
-
-  currentTurn = 'human';
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize the boards
-  initBoard('player-grid', false);
-  initBoard('enemy-grid', true, (index) =>
-    handleEnemyCellClick(index, players.computer.gameBoard)
-  );
-
-  enemyGrid = document.getElementById('enemy-grid');
-  playerGrid = document.getElementById('player-grid');
-  playerGrid.classList.add('disable-grid');
-
-  // Create players
-  players.human = new Player('real');
-  players.computer = new Player('computer');
-
-  placeRandomShips(players.human.gameBoard);
-  placeRandomShips(players.computer.gameBoard);
-
-  // Once ships are placed, create ship overlays once
-  initShipOverlays(players.human.gameBoard, 'player-overlay', false);
-  initShipOverlays(players.computer.gameBoard, 'enemy-overlay', true);
-
-  // Render initial state
-  renderBoard(players.human.gameBoard, 'player-grid', 'player-overlay', false);
-  renderBoard(players.computer.gameBoard, 'enemy-grid', 'enemy-overlay', true);
-
-  currentTurn = 'human';
+  initGame();
 });
 
 function placeRandomShips(gameBoard) {
@@ -139,7 +178,7 @@ function placeRandomShips(gameBoard) {
   for (const size of shipSizes) {
     const ship = new Ship(size);
 
-    // Randomly rotate ship 50% of the time
+    // Randomly rotate ship
     if (Math.random() < 0.5) {
       ship.rotate();
     }
