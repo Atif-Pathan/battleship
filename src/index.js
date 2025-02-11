@@ -27,8 +27,8 @@ function initGame() {
 
   enemyGrid = document.getElementById('enemy-grid');
   playerGrid = document.getElementById('player-grid');
-  playerGrid.classList.add('disable-grid');
-  enemyGrid.classList.remove('disable-grid');
+  playerGrid.classList.remove('disable-grid');
+  enemyGrid.classList.add('disable-grid');
 
   // Create new players
   players.human = new Player('real');
@@ -97,6 +97,8 @@ function initGame() {
   );
   lockButton.addEventListener('click', () => {
     placementControlContainer.style.display = 'none';
+    playerGrid.classList.add('disable-grid');
+    enemyGrid.classList.remove('disable-grid');
     currentTurn = 'human';
     console.log('Player ships locked in. Game begins.');
   });
